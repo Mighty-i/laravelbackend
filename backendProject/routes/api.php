@@ -13,13 +13,18 @@ use App\Http\Controllers\repair_statuscontroller;
 use App\Http\Controllers\customerscontroller;
 use App\Http\Controllers\report_controller;
 use App\Http\Controllers\insurance_companycontroller;
+use App\Http\Controllers\vehiclescontroller;
 
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\car_brandscontroller;
+use App\Http\Controllers\PaymentController;
 
 // Route::get('/user', function (Request $request) {
 //     return $request->user();
 // })->middleware('auth:sanctum');
+
+Route::post('/promptpay', [PaymentController::class, 'createPromptPay']);
+
 Route::get('auth/google', [App\Http\Controllers\AuthController::class, 'redirectToGoogle']);
 Route::get('auth/callback', [App\Http\Controllers\AuthController::class, 'handleGoogleCallback']);
 
@@ -31,12 +36,18 @@ Route::post('/logincustomer', [AuthController::class, 'logincustomer']);
 Route::post('/weblogin', [AuthController::class, 'Weblogin']);
 Route::post('/weblogout', [AuthController::class, 'Weblogout']);
 
+Route::get('/Rolesuser', [rolescontroller::class, 'index1']);
 Route::get('/roles', [rolescontroller::class, 'index']);
 Route::get('/puser', [pusercontroller::class, 'index']);
 
+Route::post('/registerweb', [pusercontroller::class, 'registerweb']);
+Route::put('/puserup2', [pusercontroller::class, 'updateUser']);
+
 Route::post('/customersstore', [customerscontroller::class, 'store']);//web
 
-
+Route::put('/updatecar', [vehiclescontroller::class, 'updateCar']);
+Route::post('/addnewcar', [vehiclescontroller::class, 'addNewCar']);//web
+Route::post('/addnewmodel', [vehiclescontroller::class, 'addNewModel']);//web
 
 Route::get('/datacar', [car_brandscontroller::class, 'index']);//ข้อมูลรถ
 Route::get('/quotationsS', [quotationscontroller::class, 'searchByLicensePlate']);//เรียกดูข้อมูลเก่า
@@ -72,13 +83,15 @@ Route::get('/quotationsInProgress', [quotationscontroller::class, 'index2']);
 Route::put('/quotationsupdateStatus', [quotationscontroller::class, 'update']);
 Route::post('/quotations-insert', [quotationscontroller::class, 'store']);
 
+Route::post('/Payment', [quotationscontroller::class, 'Payment']);
+
 Route::get('/quotationsshowdata', [quotationscontroller::class, 'showdata']);
 
 Route::get('/quotationsshowAlldata', [quotationscontroller::class, 'ShowAlldata']);
 
 Route::get('/check-quotation-status', [quotationscontroller::class, 'checkAndUpdateQuotationStatus']);
 
-Route::get('/quotationsInProgressonweb', [quotationscontroller::class, 'INProcessonweb']);
+Route::get('/quotationsInProweb', [quotationscontroller::class, 'INProcessonweb']);
 
 Route::get('/quotationsCompleted', [quotationscontroller::class, 'Completed']);
 
@@ -88,7 +101,12 @@ Route::get('/LatestQuotations', [quotationscontroller::class, 'LatestQuotations'
 
 Route::get('/customersearchByLicensePlate', [quotationscontroller::class, 'customersearchByLicensePlate']);
 
+Route::get('/customerhistory', [quotationscontroller::class, 'customerhistory']);
+
+Route::get('/ShowAlldataReport', [quotationscontroller::class, 'ShowAlldataReport']);
+
 Route::put('/quotations/{id}', [quotationscontroller::class, 'updateQWeb']);
+Route::delete('/quotations/{id}', [quotationscontroller::class, 'destroy']);
 
 Route::get('/repair_steps', [repair_stepscontroller::class, 'index']);
 
@@ -110,3 +128,5 @@ Route::get('/partsAdmin', [partcontroller::class, 'index2']);
 Route::post('/parts-store', [partcontroller::class, 'store']);     // เพิ่มข้อมูลใหม่
 Route::put('/parts/{id}', [partcontroller::class, 'update']); // อัปเดตข้อมูล
 Route::delete('/parts/{id}', [partcontroller::class, 'destroy']); // ลบข้อมูล
+
+Route::put('/updatepart/{id}', [partcontroller::class, 'updatepart']); // อัปเดตข้อมูล

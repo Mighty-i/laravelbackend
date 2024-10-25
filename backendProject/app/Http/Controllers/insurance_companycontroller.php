@@ -13,9 +13,19 @@ class insurance_companycontroller extends Controller
     public function index()
     {
         $companies = insurance_company::all();
+
+        $response = $companies->map(function ($companie) {
+            return [
+                'Company_ID' => $companie->Company_ID,
+                'Name' => $companie->Name,
+                'Address' => $companie->Address,
+                'PhoneNumber' => $companie->PhoneNumber,
+            ];
+        });
+
         return response()->json([
             'status' => true,
-            'data' => $companies,
+            'data' => $response,
         ]);
     }
 

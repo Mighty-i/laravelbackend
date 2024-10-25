@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\puser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Validator;
 
 class pusercontroller extends Controller
 {
@@ -57,9 +58,7 @@ class pusercontroller extends Controller
             // อัปโหลดไฟล์ใหม่
             $imagePath = $request->file('profile_picture')->store('public/images');
             $user->Image = str_replace('public/', '', $imagePath);
-    
-            // อัปเดตข้อมูลในฐานข้อมูล
-            // $user->profile_picture = $imageName;
+
             $user->save();
         }
         return response()->json([
@@ -110,10 +109,104 @@ class pusercontroller extends Controller
         if (!$user) {
             return response()->json(['message' => 'User not found'], 404);
         }
-        
+
         $user->username = $request->new_username;
         $user->save();
 
         return response()->json(['message' => 'username updated successfully'], 200);
+    }
+
+    public function registerweb(Request $request)
+    {
+        $validator = Validator::make($request->all(), [
+            'username' => 'required|string|max:255|unique:pusers,username',
+            'password' => 'required|string|min:6',
+            'email' => 'required|string|email|max:255|unique:pusers,email',
+            'name' => 'required|string|max:255',
+            'phone_number' => 'required|string|max:10',
+            'Role_ID' => 'required|integer',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ]);
+        }
+
+        $user = Puser::create([
+            'username' => $request->input('username'),
+            'password' => Hash::make($request->input('password')),
+            'email' => $request->input('email'),
+            'name' => $request->input('name'),
+            'phone_number' => $request->input('phone_number'),
+            'Role_ID' => $request->input('Role_ID'),
+        ]);
+
+
+        if ($user) {
+            return response()->json([
+                'status' => true,
+                'message' => 'Quotation created successfully',
+                'data' => $user,
+            ], 201);
+        } else {
+            return response()->json([
+                'status' => true,
+                'message' => 'Failed to create quotation'
+            ], 500);
+        }
+    }
+
+    public function updateUser(Request $request)
+    {
+        // Validate the incoming request data
+        $validator = Validator::make($request->all(), [
+            'User_ID' => 'required|integer|exists:pusers,User_ID', // ตรวจสอบ User_ID
+            'username' => 'required|string|max:255|unique:pusers,username,' . $request->input('User_ID'),
+            'email' => 'required|string|email|max:255|unique:pusers,email,' . $request->input('User_ID'),
+            'name' => 'required|string|max:255',
+            'phone_number' => 'required|string|max:10',
+            'Role_ID' => 'required|integer',
+            'password' => 'nullable|string|min:6', // Password is optional in case it's not changed
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Validation error',
+                'errors' => $validator->errors()
+            ]);
+        }
+
+        // Find the user by ID
+        $user = puser::find($request->input('User_ID')); // ใช้ข้อมูลจาก request
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'User not found'
+            ], 404);
+        }
+
+        // Update user fields
+        $user->username = $request->input('username');
+        $user->email = $request->input('email');
+        $user->name = $request->input('name');
+        $user->phone_number = $request->input('phone_number');
+        $user->Role_ID = $request->input('Role_ID');
+
+        // Update password only if provided and not null
+        if ($request->filled('password')) {
+            $user->password = Hash::make($request->input('password'));
+        }
+
+        // Save the changes
+        $user->save();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'User updated successfully',
+        ]);
     }
 }

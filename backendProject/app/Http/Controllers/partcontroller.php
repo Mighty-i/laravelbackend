@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\part;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Validator;
 
 class partcontroller extends Controller
 {
@@ -125,5 +126,35 @@ class partcontroller extends Controller
         return response()->json([
             'message' => 'Part deleted successfully'
         ]);
+    }
+
+    public function updatepart(Request $request, $id)
+    {
+        // ตรวจสอบข้อมูลที่ส่งมา
+        $validator = Validator::make($request->all(), [
+            'Name' => 'required|string|max:255',
+            'Description' => 'required|string|max:255',
+            'PricePerUnit' => 'required|numeric',
+            'Quantity' => 'required|integer|min:0',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json($validator->errors(), 422);
+        }
+
+        // ค้นหาอะไหล่ที่ต้องการแก้ไข
+        $part = part::find($id);
+        if (!$part) {
+            return response()->json(['message' => 'Part not found'], 404);
+        }
+
+        // อัปเดตข้อมูลอะไหล่
+        $part->Name = $request->Name;
+        $part->Description = $request->Description;
+        $part->PricePerUnit = $request->PricePerUnit;
+        $part->Quantity = $request->Quantity;
+        $part->save();
+
+        return response()->json(['message' => 'Part updated successfully', 'part' => $part], 200);
     }
 }

@@ -188,7 +188,7 @@ class AuthController extends Controller
 
         if ($user) {
             // ถ้ามีผู้ใช้อยู่แล้ว
-            return response()->json(['status' => 'existing_user']);
+            return response()->json(['status' => 'existing_user' , 'user' => $user]);
         } else {
             // ถ้าไม่พบผู้ใช้ หรือทุกค่าที่ค้นหามีค่าเป็น NULL
             return response()->json(['status' => 'new_user']);

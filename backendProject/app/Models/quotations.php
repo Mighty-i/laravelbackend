@@ -23,12 +23,10 @@ class quotations extends Model
         'licenseplate',
         'damageassessment',
         'problemdetails',
-        'minRepairCost',
-        'maxRepairCost',
+        'RepairCost',
         'completionDate',
         'PaymentMethod',
         'PaymentDate',
-        'ImageSlie'
 
     ];
 
@@ -47,7 +45,7 @@ class quotations extends Model
     }
     public function vehicles()
     {
-        return $this->belongsTo(vehicles::class, 'Vehicle_ID', 'Vehicle_ID' );
+        return $this->belongsTo(vehicles::class, 'Vehicle_ID', 'Vehicle_ID');
     }
     public function repairProcesses()
     {

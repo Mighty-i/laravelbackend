@@ -41,8 +41,7 @@ class quotationscontroller extends Controller
                     'licenseplate' => $quotation->licenseplate,
                     'damageassessment' => $quotation->damageassessment,
                     'problemdetails' => $quotation->problemdetails,
-                    'minRepairCost' => $quotation->minRepairCost,
-                    'maxRepairCost' => $quotation->maxRepairCost,
+                    'RepairCost' => $quotation->RepairCost,
                     'completionDate' => $quotation->completionDate,
                     'customer' => [
                         'FullName' => $quotation->customers->FirstName . ' ' . $quotation->customers->Lastname ?? null, // ชื่อเต็มของลูกค้า
@@ -84,7 +83,6 @@ class quotationscontroller extends Controller
                     'completionDate' => $quotation->completionDate,
                     'PaymentMethod' => $quotation->PaymentMethod,
                     'PaymentDate' => $quotation->PaymentDate,
-                    'ImageSlie' => $quotation->ImageSlie,
                 ];
             });
 
@@ -169,6 +167,7 @@ class quotationscontroller extends Controller
                 'Model' => $quotation->vehicles->Model ?? null,             // Vehicle Model
                 'Year' => $quotation->vehicles->Year ?? null,               // Vehicle Year
                 'QuotationDate' => $quotation->QuotationDate,
+                'completionDate' => $quotation->completionDate,
                 'Status' => $quotation->Status,
                 'color' => $quotation->color,
                 'licenseplate' => $quotation->licenseplate,
@@ -207,6 +206,22 @@ class quotationscontroller extends Controller
         ]);
     }
 
+    public function Payment(Request $request)
+    {
+        try {
+            $quotation = quotations::find($request->quotationId);
+            $quotation->TotalAmount = $request->total;
+            $quotation->PaymentMethod = $request->paymentMethod;
+            $quotation->PaymentDate = now();
+            $quotation->Status = "PaymentCompleted";
+            $quotation->save();
+
+            return response()->json(['message' => 'การชำระเงินสำเร็จ']);
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'เกิดข้อผิดพลาด', 'error' => $e->getMessage()], 500);
+        }
+    }
+
     /**
      * Store a newly created resource in storage.
      */
@@ -223,8 +238,7 @@ class quotationscontroller extends Controller
             'licenseplate' => 'required|string|max:255',
             'damageassessment' => 'required|string|max:255',
             'problemdetails' => 'required|string|max:255',
-            'minRepairCost' => 'required|string|max:255',
-            'maxRepairCost' => 'required|string|max:255',
+            'RepairCost' => 'required|string|max:255',
         ]);
 
         $quotation = quotations::create([
@@ -242,12 +256,10 @@ class quotationscontroller extends Controller
             // 'damageassessment' => null,
             'problemdetails' => $request->input('problemdetails'),
             'Status' => 'Pending',
-            'minRepairCost' => $request->input('minRepairCost'),
-            'maxRepairCost' => $request->input('maxRepairCost'),
+            'RepairCost' => $request->input('RepairCost'),
             'completionDate' => $request->input('completionDate'),
             'PaymentMethod' => null,
             'PaymentDate' => null,
-            'ImageSlie' => null
         ]);
         // dd($request->all());
 
@@ -275,8 +287,7 @@ class quotationscontroller extends Controller
             'licensePlate' => 'required|string|max:255',
             'damageAssessment' => 'required|string|max:255',
             'problemDetails' => 'required|string|max:255',
-            'minRepairCost' => 'required|string|max:255',
-            'maxRepairCost' => 'required|string|max:255',
+            'RepairCost' => 'required|string|max:255',
         ]);
 
         // Find the quotation by Quotation_ID
@@ -292,8 +303,7 @@ class quotationscontroller extends Controller
             $quotation->licenseplate = $request->input('licensePlate');
             $quotation->damageassessment = $request->input('damageAssessment');
             $quotation->problemdetails = $request->input('problemDetails');
-            $quotation->minRepairCost = $request->input('minRepairCost');
-            $quotation->maxRepairCost = $request->input('maxRepairCost');
+            $quotation->RepairCost = $request->input('RepairCost');
 
             $quotation->save();
 
@@ -351,9 +361,23 @@ class quotationscontroller extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        //
+        // Find the quotation by Quotation_ID
+        $quotation = quotations::where('Quotation_ID', $id)->first();
+
+        if ($quotation) {
+            // Delete the quotation
+            $quotation->delete();
+
+            return response()->json([
+                'message' => 'Quotation deleted successfully.',
+            ], 200);
+        } else {
+            return response()->json([
+                'message' => 'Quotation not found.',
+            ], 404);
+        }
     }
 
     public function checkAndUpdateQuotationStatus(Request $request)
@@ -417,8 +441,7 @@ class quotationscontroller extends Controller
                 'DamageAssessment' => $quotation->damageassessment,
                 'ProblemDetails' => $quotation->problemdetails,
                 'color' => $quotation->color,
-                'minRepairCost' => $quotation->minRepairCost,
-                'maxRepairCost' => $quotation->maxRepairCost,
+                'RepairCost' => $quotation->RepairCost,
                 'Customer' => $quotation->customers ? [
                     'Customer_ID' => $quotation->customers->Customer_ID,
                     'FirstName' => $quotation->customers->FirstName,
@@ -601,6 +624,128 @@ class quotationscontroller extends Controller
                         'updated_at' => $process->updated_at,
                         'repair_status' => $process->repair_status->map(function ($status) {
                             return [
+                                'StatusType' => $status->StatusType,
+                                'Image1' => $status->Image1,
+                                'Image2' => $status->Image2,
+                                'Image3' => $status->Image3,
+                                'Status' => $status->Status,
+
+                            ];
+                        }),
+                    ];
+                }),
+            ];
+        });
+
+        // return response()->json($response);
+        return response()->json([
+            'status' => true,
+            'data' => $response,
+        ]);
+    }
+
+    public function customerhistory(Request $request)
+    {
+
+        $request->validate([
+            'Customer_ID' => 'required|integer|max:255',
+        ]);
+        $Customer_ID = $request->input('Customer_ID');
+        // ค้นหา quotations ตาม licenseplate พร้อมดึงข้อมูลที่เกี่ยวข้อง
+        $quotations = quotations::with(['customers', 'insurance_company', 'vehicles.car_brands', 'repairProcesses.repair_status', 'repairProcesses.repair_steps'])
+            ->where('Customer_ID', $Customer_ID)
+            ->get();
+
+        // แปลงข้อมูลให้อยู่ในรูปแบบที่ต้องการ
+        $response = $quotations->map(function ($quotation) {
+            return [
+                'Quotation_ID' => $quotation->Quotation_ID,
+                'QuotationDate' => $quotation->QuotationDate,
+                // 'TotalAmount' => $quotation->TotalAmount,
+                'Status' => $quotation->Status,
+                'LicensePlate' => $quotation->licenseplate,
+                'DamageAssessment' => $quotation->damageassessment,
+                'ProblemDetails' => $quotation->problemdetails,
+                'color' => $quotation->color,
+                // 'customer' => [
+                'FullName' => $quotation->customers->FirstName . ' ' . $quotation->customers->Lastname ?? null, // ชื่อเต็มของลูกค้า
+                'CustomerPhone' => $quotation->customers->PhoneNumber ?? null,    // เบอร์โทรของลูกค้า
+                // ],
+                'InsuranceCompany' => $quotation->insurance_company->Name,
+                'Brand' => $quotation->vehicles->car_brands->Brand ?? null, // Vehicle Brand
+                'Model' => $quotation->vehicles->Model ?? null,             // Vehicle Model
+                'Year' => $quotation->vehicles->Year ?? null,               // Vehicle Year
+                'repair_processes' => $quotation->repairProcesses->map(function ($process) {
+                    return [
+                        'StepName' => $process->repair_steps->StepName,
+                        'Status' => $process->Status,
+                        'created_at' => $process->created_at,
+                        'updated_at' => $process->updated_at,
+                        'repair_status' => $process->repair_status->map(function ($status) {
+                            return [
+                                'StatusType' => $status->StatusType,
+                                'Image1' => $status->Image1,
+                                'Image2' => $status->Image2,
+                                'Image3' => $status->Image3,
+                                'Status' => $status->Status,
+
+                            ];
+                        }),
+                    ];
+                }),
+            ];
+        });
+
+        // return response()->json($response);
+        return response()->json([
+            'status' => true,
+            'data' => $response,
+        ]);
+    }
+
+    public function ShowAlldataReport()
+    {
+        $quotations = quotations::with(['puser', 'customers', 'insurance_company', 'vehicles.car_brands', 'repairProcesses.repair_status.puser', 'repairProcesses.repair_steps', 'repairProcesses.part_usage.part'])
+            ->get();
+
+        $response = $quotations->map(function ($quotation) {
+            return [
+                'Quotation_ID' => $quotation->Quotation_ID,
+                'QuotationDate' => $quotation->QuotationDate,
+                'SAuser' => $quotation->puser->name,
+                'TotalAmount' => $quotation->TotalAmount,
+                'Status' => $quotation->Status,
+                'LicensePlate' => $quotation->licenseplate,
+                'DamageAssessment' => $quotation->damageassessment,
+                'ProblemDetails' => $quotation->problemdetails,
+                'color' => $quotation->color,
+                'FullName' => $quotation->customers->FirstName . ' ' . $quotation->customers->Lastname ?? null, // ชื่อเต็มของลูกค้า
+                'CustomerPhone' => $quotation->customers->PhoneNumber ?? null,    // เบอร์โทรของลูกค้า
+                'InsuranceCompany' => $quotation->insurance_company->Name,
+                'Brand' => $quotation->vehicles->car_brands->Brand ?? null, // Vehicle Brand
+                'Model' => $quotation->vehicles->Model ?? null,             // Vehicle Model
+                'Year' => $quotation->vehicles->Year ?? null,               // Vehicle Year
+                'RepairCost' => $quotation->RepairCost,
+                'completionDate' => $quotation->completionDate,
+                'PaymentMethod' => $quotation->PaymentMethod,
+                'PaymentDate' => $quotation->PaymentDate,
+                'repair_processes' => $quotation->repairProcesses->map(function ($process) {
+                    return [
+                        'StepName' => $process->repair_steps->StepName,
+                        'Description' => $process->Description,
+                        'Status' => $process->Status,
+                        'partusage' => $process->part_usage->map(function ($part_usage) {
+                            return [
+                                'partname' => $part_usage->part->Name,
+                                'PricePerUnit' => $part_usage->part->PricePerUnit,
+                                'Quantity' => $part_usage->Quantity,
+                            ];
+                        }),
+                        'created_at' => $process->created_at,
+                        'updated_at' => $process->updated_at,
+                        'repair_status' => $process->repair_status->map(function ($status) {
+                            return [
+                                'technician' => $status->puser->name,
                                 'StatusType' => $status->StatusType,
                                 'Image1' => $status->Image1,
                                 'Image2' => $status->Image2,
